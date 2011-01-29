@@ -130,24 +130,23 @@ class CommandLineParser {
                     $result.add-option($opt, $value);
                     slurp-rest if %!stopper{"--$opt"};
                 } else {
-                    # potentially clustered
                     my $opt := pir::substr($cur, 1);
                     if pir::length($opt) == 1 {
-                        # maybe we have values
-                            pir::die("No such option -$opt") unless %!options{$opt};
-                            if self.wants-value($opt) {
-                                $result.add-option($opt,
-                                                   get-value("-$opt"));
-                            } else {
-                                $result.add-option($opt, 1);
-                            }
-                            slurp-rest() if %!stopper{"-$opt"};
+                        # not grouped, so it might have a value
+                        pir::die("No such option -$opt") unless %!options{$opt};
+                        if self.wants-value($opt) {
+                            $result.add-option($opt,
+                            get-value("-$opt"));
+                        } else {
+                            $result.add-option($opt, 1);
+                        }
+                        slurp-rest() if %!stopper{"-$opt"};
                     } else {
                         # length > 1, so the options are grouped
                         my $iter := pir::iter__pp($opt);
                         while $iter {
                             my $o := pir::shift($iter);
-                            pir::die("Option -$o requires a value and cannot be clustered") if self.wants-value($o);
+                            pir::die("Option -$o requires a value and cannot be grouped") if self.wants-value($o);
                             $result.add-option($o, 1);
                         }
                     }
