@@ -41,7 +41,7 @@ class CommandLineParser {
 
     has %!stopper;
 
-    method new(:@specs) {
+    method new(@specs) {
         my $obj := self.CREATE;
         $obj.BUILD(specs => @specs);
         $obj;
@@ -178,7 +178,7 @@ class CommandLineParser {
 
 plan(15);
 
-my $x := CommandLineParser.new(specs => ['a', 'b', 'e=s', 'target=s', 'verbose']);
+my $x := CommandLineParser.new(['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
 
 ok($r.HOW.isa($r, CLIParseResult), 'got the right object type back');
