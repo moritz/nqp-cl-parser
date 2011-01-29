@@ -51,7 +51,7 @@ class CommandLineParser {
         %!stopper{'--'} := 1;
         self.init();
     }
-    method set-stopper($x) {
+    method add-stopper($x) {
         %!stopper{$x} := 1;
     }
 
@@ -176,7 +176,7 @@ class CommandLineParser {
     }
 }
 
-plan(15);
+plan(17);
 
 my $x := CommandLineParser.new(['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
@@ -210,15 +210,18 @@ $r := $x.parse(['a', '--', 'b', '--target', 'c']);
 ok(+$r.arguments == 4, 'got 4 arguments, -- does not count');
 ok(pir::join(',',$r.arguments) eq 'a,b,--target,c', '... and the right arguments');
 
-$x.set-stopper('-e');
+$x.add-stopper('-e');
 
 $r := $x.parse(['-e', 'foo', '--target', 'bar']);
 ok(+$r.arguments == 2,
     'if -e is stopper, everything after its value is an argument');
+ok($r.options{'e'} eq 'foo', '... and -e still got the right value');
 
-$x.set-stopper('stopper');
+$x.add-stopper('stopper');
 $r := $x.parse(['stopper', '--verbose']);
 ok(+$r.arguments == 1, 'non-option stopper worked');
+
+# TODO: tests for long options as stoppers
 
 #for $r.options() {
 #    say($_.key, ": ", $_.value, ' (', pir::typeof($_.value), ')');
