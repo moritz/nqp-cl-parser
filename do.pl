@@ -78,13 +78,13 @@ class CommandLineParser {
     }
 
     method parse(@args) {
-        my @rest;
         my $i := 0;
         my $arg-count := +@args;
 
         my $result := CLIParseResult.new();
         $result.init();
 
+        # called when an option expects a value after it
         sub get-value($opt) {
             if $i == $arg-count - 1 {
                 pir::die("Option $opt needs a value");
@@ -97,6 +97,9 @@ class CommandLineParser {
                 @args[$i];
             }
         }
+
+        # called after a terminator that declares the rest
+        # as not containing any options
         sub slurp-rest() {
             $i++;
             while $i < $arg-count {
@@ -106,8 +109,6 @@ class CommandLineParser {
         }
 
         while $i < $arg-count {
-#            say("# looking at ", @args[$i]);
-
             if self.is-option(@args[$i]) {
                 if pir::substr(@args[$i], 0, 2) eq '--' {
                     # long option
@@ -115,37 +116,34 @@ class CommandLineParser {
                     my $idx := pir::index($opt, '=');
                     my $value := 1;
                     my $has-value := 0;
+
                     if $idx >= 0 {
                         $value     := pir::substr($opt, $idx + 1);
                         $opt       := pir::substr($opt, 0,      $idx);
                         $has-value := 1;
                     }
-                    pir::die("Illegal option --$opt") if pir::isa(%!options{$opt}, 'Undef');
+                    pir::die("Illegal option --$opt") unless pir::exists(%!options, $opt);
                     pir::die("Option --$opt does not allow a value") if %!options{$opt} ne 's' && $has-value;
                     if !$has-value && self.wants-value($opt) {
                         $value := get-value("--$opt");
                     }
                     $result.add-option($opt, $value);
-                    if %!stopper{"--$opt"} {
-                        slurp-rest();
-                    }
+                    slurp-rest if %!stopper{"--$opt"};
                 } else {
                     # potentially clustered
                     my $opt := pir::substr(@args[$i], 1);
                     if pir::length($opt) == 1 {
                         # maybe we have values
-                            pir::die("No such short option -$opt") unless %!options{$opt};
+                            pir::die("No such option -$opt") unless %!options{$opt};
                             if self.wants-value($opt) {
                                 $result.add-option($opt,
                                                    get-value("-$opt"));
                             } else {
                                 $result.add-option($opt, 1);
                             }
-                            if %!stopper{"-$opt"} {
-                                slurp-rest();
-                            }
+                            slurp-rest() if %!stopper{"-$opt"};
                     } else {
-                        # clustered, no values
+                        # length > 1, so the options are grouped
                         my $iter := pir::iter__pp($opt);
                         while $iter {
                             my $o := pir::shift($iter);
