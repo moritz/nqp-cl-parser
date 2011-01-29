@@ -17,13 +17,17 @@ class CLIParseResult {
 
     method add-option($name, $value) {
         # how I miss p6's Hash.push
-        my $t := pir::typeof(%!options);
-        if $t eq 'ResizablePMCArray' {
-            pir::push(%!options{$name}, $value);
-        } elsif $t eq 'Undef' {
-            %!options{$name} := $value;
+
+        if pir::exists(%!options, $name) {
+            my $t := pir::typeof(%!options);
+            say($t);
+            if $t eq 'ResizablePMCArray' {
+                pir::push(%!options{$name}, $value);
+            } else {
+                %!options{$name} := [ %!options{$name}, $name ];
+            }
         } else {
-            %!options{$name} := [ %!options{$name}, $name ];
+            %!options{$name} := $value;
         }
     }
 }
@@ -82,9 +86,6 @@ class CommandLineParser {
         my $i := 0;
         my $arg-count := +@args;
         my $args-starting-from := $arg-count;
-        my $looking_for := '';
-
-        my %found-options;
 
         my $result := CLIParseResult.new();
         $result.init();
@@ -109,11 +110,14 @@ class CommandLineParser {
 
                     $result.add-option($opt, $value);
                 } else {
-                    for pir::split(pir::substr(@args[$i], 1), '') {
-                        # TODO: check that it's ok that $_ doesn't have a
-                        # value
-                        $result.add-option($_, 1);
-
+                    # potentially clustered
+                    my $short-opts := pir::substr(@args[$i], 1);
+                    my $iter := pir::iter__pp($short-opts);
+                    while $iter {
+                        my $o := pir::shift($iter);
+                        pir::die("No such short option $o") unless %!short{$o};
+                        pir::die("Option $o requires a value and cannot be clustered") if %!short{$o} eq 's';
+                        $result.add-option($o, 1);
                     }
                 }
             } else {
@@ -125,9 +129,9 @@ class CommandLineParser {
     }
 }
 
-plan(3);
+plan(5);
 
-my $x := CommandLineParser.new(specs => ['a', 'e=s', 'target=s', 'verbose']);
+my $x := CommandLineParser.new(specs => ['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
 
 ok($r.HOW.isa($r, CLIParseResult), 'got the right object type back');
@@ -135,6 +139,15 @@ ok($r.arguments()[0] eq 'b', '"b" got classified as argument')
     || say("# arguments: '", pir::join('|', $r.arguments()), "'");
 ok($r.options(){'a'} == 1, '-a is an option');
 
-say("alive");
+
+$r := $x.parse(['-ab']);
+
+ok($r.options(){'a'} == 1, '-ab counts as -a (clustering)');
+ok($r.options(){'b'} == 1, '-ab counts as -b (clustering)');
+
+#for $r.options() {
+#    say($_.key, ": ", $_.value, ' (', pir::typeof($_.value), ')');
+#}
+
 
 # vim: ft=perl6
