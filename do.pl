@@ -107,6 +107,13 @@ class CommandLineParser {
                 @args[$i];
             }
         }
+        sub slurp-rest() {
+            $i++;
+            while $i < $arg-count {
+                $result.add-argument(@args[$i]);
+                $i++;
+            }
+        }
 
         while $i < $arg-count {
 #            say("# looking at ", @args[$i]);
@@ -120,7 +127,7 @@ class CommandLineParser {
                     my $has-value := 0;
                     if $idx >= 0 {
                         $value     := pir::substr($opt, $idx + 1);
-                        $opt       :=  pir::substr($opt, 0, $idx);
+                        $opt       := pir::substr($opt, 0,      $idx);
                         $has-value := 1;
                     }
                     pir::die("Illegal option --$opt") if pir::isa(%!long{$opt}, 'Undef');
@@ -141,7 +148,6 @@ class CommandLineParser {
                             } else {
                                 $result.add-option($short-opts, 1);
                             }
-
                     } else {
                         # clustered, no values
                         my $iter := pir::iter__pp($short-opts);
@@ -153,6 +159,8 @@ class CommandLineParser {
                         }
                     }
                 }
+            } elsif %!stopper{@args[$i]} {
+                slurp-rest();
             } else {
                 $result.add-argument(@args[$i]);
             }
@@ -162,7 +170,7 @@ class CommandLineParser {
     }
 }
 
-plan(7);
+plan(14);
 
 my $x := CommandLineParser.new(specs => ['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
@@ -191,6 +199,11 @@ $r := $x.parse(['--target', 'foo', 'bar']);
 ok($r.options{'target'} eq 'foo', 'long option with value as separate argument');
 ok(+$r.arguments == 1, '...on remaining argument');
 ok($r.arguments[0] eq 'bar', '...and  it is the right one');
+
+$r := $x.parse(['a', '--', 'b', '--target', 'c']);
+ok(+$r.arguments == 4, 'got 4 arguments, -- does not count');
+ok(pir::join(',',$r.arguments) eq 'a,b,--target,c', '... and the right arguments');
+
 
 #for $r.options() {
 #    say($_.key, ": ", $_.value, ' (', pir::typeof($_.value), ')');
