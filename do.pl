@@ -176,7 +176,7 @@ class CommandLineParser {
     }
 }
 
-plan(14);
+plan(15);
 
 my $x := CommandLineParser.new(specs => ['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
@@ -216,6 +216,9 @@ $r := $x.parse(['-e', 'foo', '--target', 'bar']);
 ok(+$r.arguments == 2,
     'if -e is stopper, everything after its value is an argument');
 
+$x.set-stopper('stopper');
+$r := $x.parse(['stopper', '--verbose']);
+ok(+$r.arguments == 1, 'non-option stopper worked');
 
 #for $r.options() {
 #    say($_.key, ": ", $_.value, ' (', pir::typeof($_.value), ')');
