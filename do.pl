@@ -9,7 +9,7 @@ class CLIParseResult {
     }
 
     method arguments() { @!arguments }
-    method options()   { @!options   }
+    method options()   { %!options   }
 
     method add-argument($x) {
         pir::push__vPP(@!arguments, $x);
