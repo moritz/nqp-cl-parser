@@ -61,7 +61,6 @@ class CommandLineParser {
                 $type := pir::substr($_, $i + 1);
                 $_    := pir::substr($_, 0, $i);
             }
-            say("# type: '$type'; option: '$_'");
             %!options{$_} := $type;
         }
     }
@@ -109,8 +108,9 @@ class CommandLineParser {
         }
 
         while $i < $arg-count {
-            if self.is-option(@args[$i]) {
-                if pir::substr(@args[$i], 0, 2) eq '--' {
+            my $cur := @args[$i];
+            if self.is-option($cur) {
+                if pir::substr($cur, 0, 2) eq '--' {
                     # long option
                     my $opt := pir::substr(@args[$i], 2);
                     my $idx := pir::index($opt, '=');
@@ -131,7 +131,7 @@ class CommandLineParser {
                     slurp-rest if %!stopper{"--$opt"};
                 } else {
                     # potentially clustered
-                    my $opt := pir::substr(@args[$i], 1);
+                    my $opt := pir::substr($cur, 1);
                     if pir::length($opt) == 1 {
                         # maybe we have values
                             pir::die("No such option -$opt") unless %!options{$opt};
@@ -152,10 +152,10 @@ class CommandLineParser {
                         }
                     }
                 }
-            } elsif %!stopper{@args[$i]} {
+            } elsif %!stopper{$cur} {
                 slurp-rest();
             } else {
-                $result.add-argument(@args[$i]);
+                $result.add-argument($cur);
             }
             $i++;
         }
@@ -168,7 +168,7 @@ plan(17);
 my $x := CommandLineParser.new(['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
 
-ok($r.HOW.isa($r, CLIParseResult), 'got the right object type back');
+ok($r.isa(CLIParseResult), 'got the right object type back');
 ok($r.arguments()[0] eq 'b', '"b" got classified as argument')
     || say("# arguments: '", pir::join('|', $r.arguments()), "'");
 ok($r.options(){'a'} == 1, '-a is an option');
