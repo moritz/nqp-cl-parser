@@ -1,11 +1,16 @@
 class CLIParseResult {
+    has $!b;
     has @!arguments;
     has %!options;
-    has $!error;
 
     method init() {
         @!arguments := [];
         %!options := pir::new('Hash');
+        $!stop-after-first-arg := 0;
+    }
+
+    method stop-after-first-arg() {
+        $!stop-after-first-arg := 1;
     }
 
     method arguments() { @!arguments }
@@ -155,6 +160,9 @@ class CommandLineParser {
                 slurp-rest();
             } else {
                 $result.add-argument($cur);
+                # NQP-RX: the following line casues nqp-rx/nom to die with
+                # P6opaque attributes NYFI
+                # slurp-rest() if $!stop-after-first-arg;
             }
             $i++;
         }
