@@ -3,11 +3,16 @@ class CLIParseResult {
     has %!options;
     has $!error;
 
+    method init() {
+        @!arguments := [];
+        %!options := pir::new('Hash');
+    }
+
     method arguments() { @!arguments }
     method options()   { @!options   }
 
     method add-argument($x) {
-        pir::push(@!arguments, $x);
+        pir::push__vPP(@!arguments, $x);
     }
 
     method add-option($name, $value) {
@@ -82,6 +87,7 @@ class CommandLineParser {
         my %found-options;
 
         my $result := CLIParseResult.new();
+        $result.init();
         while $i < $arg-count {
             say("looking at ", @args[$i]);
 
@@ -104,22 +110,30 @@ class CommandLineParser {
                     $result.add-option($opt, $value);
                 } else {
                     for pir::split(pir::substr(@args[$i], 1), '') {
+                        # TODO: check that it's ok that $_ doesn't have a
+                        # value
+                        $result.add-option($_, 1);
 
                     }
                 }
             } else {
-                say("found an argument");
+                $result.add-argument(@args[$i]);
             }
             $i++;
         }
-        $result;
+        return $result;
     }
 }
 
-say("alive at start");
+plan(3);
 
 my $x := CommandLineParser.new(specs => ['a', 'e=s', 'target=s', 'verbose']);
-my %h := $x.parse(['-a', '--', 'b', 'c', '--verbose']);
+my $r := $x.parse(['-a', 'b']);
+
+ok($r.HOW.isa($r, CLIParseResult), 'got the right object type back');
+ok($r.arguments()[0] eq 'b', '"b" got classified as argument')
+    || say("# arguments: '", pir::join('|', $r.arguments()), "'");
+ok($r.options(){'a'} == 1, '-a is an option');
 
 say("alive");
 
