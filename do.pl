@@ -35,9 +35,7 @@ class CLIParseResult {
 class CommandLineParser {
     has @!specs;
 
-    has %!short;
-    has %!long;
-    has %!either;
+    has %!options;
 
     has %!stopper;
 
@@ -66,11 +64,7 @@ class CommandLineParser {
                 $_    := pir::substr($_, 0, $i);
             }
             say("# type: '$type'; option: '$_'");
-            if pir::length($_) == 1 {
-                %!short{$_} := $type;
-            } else {
-                %!long{$_}  := $type;
-            }
+            %!options{$_} := $type;
         }
     }
 
@@ -81,7 +75,7 @@ class CommandLineParser {
     }
 
     method wants-value($x) {
-        my $spec := %!short{$x} || %!long{$x};
+        my $spec := %!options{$x};
         $spec eq 's';
     }
 
@@ -128,8 +122,8 @@ class CommandLineParser {
                         $opt       := pir::substr($opt, 0,      $idx);
                         $has-value := 1;
                     }
-                    pir::die("Illegal option --$opt") if pir::isa(%!long{$opt}, 'Undef');
-                    pir::die("Option --$opt does not allow a value") if %!long{$opt} ne 's' && $has-value;
+                    pir::die("Illegal option --$opt") if pir::isa(%!options{$opt}, 'Undef');
+                    pir::die("Option --$opt does not allow a value") if %!options{$opt} ne 's' && $has-value;
                     if !$has-value && self.wants-value($opt) {
                         $value := get-value("--$opt");
                     }
@@ -142,7 +136,7 @@ class CommandLineParser {
                     my $short-opts := pir::substr(@args[$i], 1);
                     if pir::length($short-opts) == 1 {
                         # maybe we have values
-                            pir::die("No such short option -$short-opts") unless %!short{$short-opts};
+                            pir::die("No such short option -$short-opts") unless %!options{$short-opts};
                             if self.wants-value($short-opts) {
                                 $result.add-option($short-opts,
                                                    get-value("-$short-opts"));
@@ -157,7 +151,6 @@ class CommandLineParser {
                         my $iter := pir::iter__pp($short-opts);
                         while $iter {
                             my $o := pir::shift($iter);
-                            pir::die("No such short option -$o") unless %!short{$o};
                             pir::die("Option -$o requires a value and cannot be clustered") if self.wants-value($o);
                             $result.add-option($o, 1);
                         }
