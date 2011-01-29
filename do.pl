@@ -65,7 +65,7 @@ class CommandLineParser {
                 $type := pir::substr($_, $i + 1);
                 $_    := pir::substr($_, 0, $i);
             }
-            say("type: '$type'; option: '$_'");
+            say("# type: '$type'; option: '$_'");
             if pir::length($_) == 1 {
                 %!short{$_} := $type;
             } else {
@@ -109,7 +109,7 @@ class CommandLineParser {
         }
 
         while $i < $arg-count {
-            say("looking at ", @args[$i]);
+#            say("# looking at ", @args[$i]);
 
             if self.is-option(@args[$i]) {
                 if pir::substr(@args[$i], 0, 2) eq '--' {
@@ -124,9 +124,10 @@ class CommandLineParser {
                         $has-value := 1;
                     }
                     pir::die("Illegal option --$opt") if pir::isa(%!long{$opt}, 'Undef');
-                    pir::die("Option --$opt needs a value, but doesn't have one") if %!long{$opt} eq 's' && !$has-value;
                     pir::die("Option --$opt does not allow a value") if %!long{$opt} ne 's' && $has-value;
-
+                    if !$has-value && self.wants-value($opt) {
+                        $value := get-value("--$opt");
+                    }
                     $result.add-option($opt, $value);
                 } else {
                     # potentially clustered
@@ -182,6 +183,14 @@ $r := $x.parse(['-e', 'foo bar', 'x']);
 ok($r.options(){'e'} eq 'foo bar', 'short options + value');
 ok(+$r.arguments == 1, 'one argument remaining');
 
+$r := $x.parse(['--verbose', '--target=foo']);
+ok($r.options{'verbose'} == 1,    'long option without value');
+ok($r.options{'target'} eq 'foo', 'long option with value supplied via =');
+
+$r := $x.parse(['--target', 'foo', 'bar']);
+ok($r.options{'target'} eq 'foo', 'long option with value as separate argument');
+ok(+$r.arguments == 1, '...on remaining argument');
+ok($r.arguments[0] eq 'bar', '...and  it is the right one');
 
 #for $r.options() {
 #    say($_.key, ": ", $_.value, ' (', pir::typeof($_.value), ')');
