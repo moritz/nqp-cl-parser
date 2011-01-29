@@ -87,10 +87,8 @@ class CommandLineParser {
 
     method parse(@args) {
         my @rest;
-        my $abort := 0;
         my $i := 0;
         my $arg-count := +@args;
-        my $args-starting-from := $arg-count;
 
         my $result := CLIParseResult.new();
         $result.init();
