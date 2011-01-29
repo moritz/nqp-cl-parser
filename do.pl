@@ -34,9 +34,7 @@ class CLIParseResult {
 
 class CommandLineParser {
     has @!specs;
-
     has %!options;
-
     has %!stopper;
 
     method new(@specs) {
@@ -133,22 +131,22 @@ class CommandLineParser {
                     }
                 } else {
                     # potentially clustered
-                    my $short-opts := pir::substr(@args[$i], 1);
-                    if pir::length($short-opts) == 1 {
+                    my $opt := pir::substr(@args[$i], 1);
+                    if pir::length($opt) == 1 {
                         # maybe we have values
-                            pir::die("No such short option -$short-opts") unless %!options{$short-opts};
-                            if self.wants-value($short-opts) {
-                                $result.add-option($short-opts,
-                                                   get-value("-$short-opts"));
+                            pir::die("No such short option -$opt") unless %!options{$opt};
+                            if self.wants-value($opt) {
+                                $result.add-option($opt,
+                                                   get-value("-$opt"));
                             } else {
-                                $result.add-option($short-opts, 1);
+                                $result.add-option($opt, 1);
                             }
-                            if %!stopper{"-$short-opts"} {
+                            if %!stopper{"-$opt"} {
                                 slurp-rest();
                             }
                     } else {
                         # clustered, no values
-                        my $iter := pir::iter__pp($short-opts);
+                        my $iter := pir::iter__pp($opt);
                         while $iter {
                             my $o := pir::shift($iter);
                             pir::die("Option -$o requires a value and cannot be clustered") if self.wants-value($o);
