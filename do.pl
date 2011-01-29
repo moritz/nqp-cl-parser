@@ -80,6 +80,11 @@ class CommandLineParser {
         0;
     }
 
+    method wants-value($x) {
+        my $spec := %!short{$x} || %!long{$x};
+        $spec eq 's';
+    }
+
     method parse(@args) {
         my @rest;
         my $abort := 0;
@@ -89,6 +94,20 @@ class CommandLineParser {
 
         my $result := CLIParseResult.new();
         $result.init();
+
+        sub get-value($opt) {
+            if $i == $arg-count - 1 {
+                pir::die("Option $opt needs a value");
+            } elsif self.is-option(@args[$i + 1]) {
+                pir::die("Option $opt needs a value, but is followed by an option");
+            } elsif %!stopper{@args[$i + 1]} {
+                pir::die("Option $opt needs a value, but is followed by a stopper");
+            } else {
+                $i++;
+                @args[$i];
+            }
+        }
+
         while $i < $arg-count {
             say("looking at ", @args[$i]);
 
@@ -112,12 +131,25 @@ class CommandLineParser {
                 } else {
                     # potentially clustered
                     my $short-opts := pir::substr(@args[$i], 1);
-                    my $iter := pir::iter__pp($short-opts);
-                    while $iter {
-                        my $o := pir::shift($iter);
-                        pir::die("No such short option $o") unless %!short{$o};
-                        pir::die("Option $o requires a value and cannot be clustered") if %!short{$o} eq 's';
-                        $result.add-option($o, 1);
+                    if pir::length($short-opts) == 1 {
+                        # maybe we have values
+                            pir::die("No such short option -$short-opts") unless %!short{$short-opts};
+                            if self.wants-value($short-opts) {
+                                $result.add-option($short-opts,
+                                                   get-value("-$short-opts"));
+                            } else {
+                                $result.add-option($short-opts, 1);
+                            }
+
+                    } else {
+                        # clustered, no values
+                        my $iter := pir::iter__pp($short-opts);
+                        while $iter {
+                            my $o := pir::shift($iter);
+                            pir::die("No such short option -$o") unless %!short{$o};
+                            pir::die("Option -$o requires a value and cannot be clustered") if self.wants-value($o);
+                            $result.add-option($o, 1);
+                        }
                     }
                 }
             } else {
@@ -129,7 +161,7 @@ class CommandLineParser {
     }
 }
 
-plan(5);
+plan(7);
 
 my $x := CommandLineParser.new(specs => ['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
@@ -144,6 +176,12 @@ $r := $x.parse(['-ab']);
 
 ok($r.options(){'a'} == 1, '-ab counts as -a (clustering)');
 ok($r.options(){'b'} == 1, '-ab counts as -b (clustering)');
+
+$r := $x.parse(['-e', 'foo bar', 'x']);
+
+ok($r.options(){'e'} eq 'foo bar', 'short options + value');
+ok(+$r.arguments == 1, 'one argument remaining');
+
 
 #for $r.options() {
 #    say($_.key, ": ", $_.value, ' (', pir::typeof($_.value), ')');
