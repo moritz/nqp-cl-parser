@@ -136,6 +136,9 @@ class CommandLineParser {
                         $value := get-value("--$opt");
                     }
                     $result.add-option($opt, $value);
+                    if %!stopper{"--$opt"} {
+                        slurp-rest();
+                    }
                 } else {
                     # potentially clustered
                     my $short-opts := pir::substr(@args[$i], 1);
@@ -147,6 +150,9 @@ class CommandLineParser {
                                                    get-value("-$short-opts"));
                             } else {
                                 $result.add-option($short-opts, 1);
+                            }
+                            if %!stopper{"-$short-opts"} {
+                                slurp-rest();
                             }
                     } else {
                         # clustered, no values
@@ -203,6 +209,12 @@ ok($r.arguments[0] eq 'bar', '...and  it is the right one');
 $r := $x.parse(['a', '--', 'b', '--target', 'c']);
 ok(+$r.arguments == 4, 'got 4 arguments, -- does not count');
 ok(pir::join(',',$r.arguments) eq 'a,b,--target,c', '... and the right arguments');
+
+$x.set-stopper('-e');
+
+$r := $x.parse(['-e', 'foo', '--target', 'bar']);
+ok(+$r.arguments == 2,
+    'if -e is stopper, everything after its value is an argument');
 
 
 #for $r.options() {
