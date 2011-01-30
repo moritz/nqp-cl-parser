@@ -1,16 +1,10 @@
 class CLIParseResult {
-    has $!stop-after-first-arg;
     has @!arguments;
     has %!options;
 
     method init() {
         @!arguments := [];
         %!options := pir::new('Hash');
-        $!stop-after-first-arg := 0;
-    }
-
-    method stop-after-first-arg() {
-        $!stop-after-first-arg := 1;
     }
 
     method arguments() { @!arguments }
@@ -41,15 +35,22 @@ class CommandLineParser {
     has @!specs;
     has %!options;
     has %!stopper;
+    has $!stop-after-first-arg;
 
     method new(@specs) {
         my $obj := self.CREATE;
         $obj.BUILD(specs => @specs);
         $obj;
     }
+
+    method stop-after-first-arg() {
+        $!stop-after-first-arg := 1;
+    }
+
     method BUILD(:@specs) {
         @!specs := @specs;
         %!stopper{'--'} := 1;
+        $!stop-after-first-arg := 0;
         self.init();
     }
     method add-stopper($x) {
@@ -162,7 +163,7 @@ class CommandLineParser {
                 $result.add-argument($cur);
                 # NQP-RX: the following line casues nqp-rx/nom to die with
                 # P6opaque attributes NYFI
-                # slurp-rest() if $!stop-after-first-arg;
+                slurp-rest() if $!stop-after-first-arg;
             }
             $i++;
         }
