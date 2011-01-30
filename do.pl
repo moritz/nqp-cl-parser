@@ -161,8 +161,6 @@ class CommandLineParser {
                 slurp-rest();
             } else {
                 $result.add-argument($cur);
-                # NQP-RX: the following line casues nqp-rx/nom to die with
-                # P6opaque attributes NYFI
                 slurp-rest() if $!stop-after-first-arg;
             }
             $i++;
@@ -171,7 +169,7 @@ class CommandLineParser {
     }
 }
 
-plan(17);
+plan(18);
 
 my $x := CommandLineParser.new(['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
@@ -215,6 +213,12 @@ ok($r.options{'e'} eq 'foo', '... and -e still got the right value');
 $x.add-stopper('stopper');
 $r := $x.parse(['stopper', '--verbose']);
 ok(+$r.arguments == 1, 'non-option stopper worked');
+
+$x.stop-after-first-arg;
+
+$r := $x.parse(['-a', 'script.pl', '--verbose']);
+ok(pir::join(',', $r.arguments) eq 'script.pl,--verbose',
+    'stop-after-first-arg');
 
 # TODO: tests for long options as stoppers
 
