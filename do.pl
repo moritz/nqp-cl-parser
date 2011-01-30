@@ -1,5 +1,5 @@
 class CLIParseResult {
-    has $!b;
+    has $!stop-after-first-arg;
     has @!arguments;
     has %!options;
 
