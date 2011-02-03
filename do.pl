@@ -1,4 +1,4 @@
-class CLIParseResult {
+class HLL::CommandLine::Result {
     has @!arguments;
     has %!options;
 
@@ -31,7 +31,7 @@ class CLIParseResult {
     }
 }
 
-class CommandLineParser {
+class HLL::CommandLine::Parser {
     has @!specs;
     has %!options;
     has %!stopper;
@@ -86,7 +86,7 @@ class CommandLineParser {
         my $i := 0;
         my $arg-count := +@args;
 
-        my $result := CLIParseResult.new();
+        my $result := HLL::CommandLine::Result.new();
         $result.init();
 
         # called when an option expects a value after it
@@ -171,10 +171,10 @@ class CommandLineParser {
 
 plan(18);
 
-my $x := CommandLineParser.new(['a', 'b', 'e=s', 'target=s', 'verbose']);
+my $x := HLL::CommandLine::Parser.new(['a', 'b', 'e=s', 'target=s', 'verbose']);
 my $r := $x.parse(['-a', 'b']);
 
-ok($r.isa(CLIParseResult), 'got the right object type back');
+ok($r.isa(HLL::CommandLine::Result), 'got the right object type back');
 ok($r.arguments()[0] eq 'b', '"b" got classified as argument')
     || say("# arguments: '", pir::join('|', $r.arguments()), "'");
 ok($r.options(){'a'} == 1, '-a is an option');
